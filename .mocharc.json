@@ -1,0 +1,13 @@
+{
+  "extension": ["ts"],
+  "spec": "test/**/*.test.ts",
+  "require": ["ts-node/register"],
+  "timeout": 5000,
+  "ui": "bdd",
+  "reporter": "spec",
+  "recursive": true,
+  "watch-files": ["src/**/*.ts", "test/**/*.test.ts"],
+  "env": {
+    "NODE_ENV": "test"
+  }
+}

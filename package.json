@@ -12,14 +12,19 @@
     "dev": "tsup --watch",
     "build": "tsup",
     "lint": "eslint . --ext .ts,.tsx",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "preview": "vite preview",
+    "test": "mocha --require ts-node/register 'test/**/*.test.ts'",
+    "test:watch": "mocha --require ts-node/register --watch 'test/**/*.test.ts'"
   },
   "keywords": [
     "vite",
     "plugin",
     "3d",
     "dependency",
-    "visualization"
+    "visualization",
+    "galaxy",
+    "three.js"
   ],
   "author": "",
   "license": "MIT",
@@ -28,9 +33,13 @@
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.0",
+    "@types/three": "^0.160.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
+    "chai": "^4.3.10",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-import-resolver-typescript": "^4.4.4",
@@ -40,9 +49,13 @@
     "eslint-plugin-import-lite": "^0.3.0",
     "eslint-plugin-perfectionist": "^4.15.0",
     "eslint-plugin-prettier": "^5.0.1",
+    "mocha": "^10.2.0",
     "prettier": "^3.1.0",
+    "rollup": "^4.46.2",
+    "ts-node": "^10.9.2",
     "tsup": "^7.2.0",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "vite": "^5.0.0"
   },
   "dependencies": {
     "three": "^0.160.0"
