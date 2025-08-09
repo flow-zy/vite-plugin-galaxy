@@ -1,0 +1,51 @@
+{
+  "name": "vite-plugin-galaxy",
+  "version": "0.0.0",
+  "description": "零配置的 Vite 插件，将项目依赖关系实时渲染成可交互 3D 星系",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "vite",
+    "plugin",
+    "3d",
+    "dependency",
+    "visualization"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "vite": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-command": "^3.3.1",
+    "eslint-plugin-format": "^1.0.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-import-lite": "^0.3.0",
+    "eslint-plugin-perfectionist": "^4.15.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.0",
+    "tsup": "^7.2.0",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "packageManager": "pnpm@8.10.5"
+}
