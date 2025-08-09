@@ -20,8 +20,8 @@ export class DepsGalaxy extends HTMLElement {
   private cameraPosition: THREE.Vector3 = new THREE.Vector3(0, 0, 5);
   private cameraTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   private sensitivity: number = 1.0;
-  private detailPanel: HTMLDivElement;
-  private volumeTooltip: HTMLDivElement;
+  private detailPanel!: HTMLDivElement; // 使用非空断言
+  private volumeTooltip!: HTMLDivElement; // 使用非空断言
 
   // 观察属性变化
   static get observedAttributes() {
@@ -102,6 +102,9 @@ export class DepsGalaxy extends HTMLElement {
     // 添加事件监听器
     this.addEventListeners();
 
+    // 添加键盘事件监听器
+    this.addKeyboardListeners();
+
     // 开始动画循环
     this.animateLoop = this.animateLoop.bind(this);
     this.animationId = requestAnimationFrame(this.animateLoop);
@@ -128,6 +131,7 @@ export class DepsGalaxy extends HTMLElement {
   disconnectedCallback() {
     // 清理事件监听器
     window.removeEventListener('resize', this.handleResize.bind(this));
+    document.removeEventListener('keydown', this.handleKeyDown.bind(this));
     cancelAnimationFrame(this.animationId);
   }
 
@@ -293,6 +297,262 @@ export class DepsGalaxy extends HTMLElement {
     });
 
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /**
+   * 初始化UI元素
+   */
+  private initUIElements() {
+    this.detailPanel = document.createElement('div');
+    this.detailPanel.style.position = 'absolute';
+    this.detailPanel.style.top = '10px';
+    this.detailPanel.style.right = '10px';
+    this.detailPanel.style.width = '300px';
+    this.detailPanel.style.backgroundColor = 'rgba(10, 10, 26, 0.8)';
+    this.detailPanel.style.color = 'white';
+    this.detailPanel.style.padding = '10px';
+    this.detailPanel.style.borderRadius = '5px';
+    this.detailPanel.style.display = 'none';
+    this.shadowRoot?.appendChild(this.detailPanel);
+
+    this.volumeTooltip = document.createElement('div');
+    this.volumeTooltip.style.position = 'absolute';
+    this.volumeTooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    this.volumeTooltip.style.color = 'white';
+    this.volumeTooltip.style.padding = '5px';
+    this.volumeTooltip.style.borderRadius = '3px';
+    this.volumeTooltip.style.pointerEvents = 'none';
+    this.volumeTooltip.style.display = 'none';
+    this.shadowRoot?.appendChild(this.volumeTooltip);
+
+    // 添加帮助提示
+    const helpDiv = document.createElement('div');
+    helpDiv.style.position = 'absolute';
+    helpDiv.style.bottom = '10px';
+    helpDiv.style.left = '10px';
+    helpDiv.style.backgroundColor = 'rgba(10, 10, 26, 0.8)';
+    helpDiv.style.color = 'white';
+    helpDiv.style.padding = '5px 10px';
+    helpDiv.style.borderRadius = '5px';
+    helpDiv.style.fontSize = '12px';
+    helpDiv.innerHTML = '📝 双击节点: 打开源码 | 📊 悬停: 查看体积 | 🔄 拖拽: 旋转视图 | WASD: 移动视角';
+    this.shadowRoot?.appendChild(helpDiv);
+  }
+
+  /**
+   * 添加事件监听器
+   */
+  private addEventListeners() {
+    this.renderer.domElement.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    document.addEventListener('mouseup', this.handleMouseUp.bind(this));
+    this.renderer.domElement.addEventListener('wheel', this.handleWheel.bind(this));
+    this.renderer.domElement.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+    this.renderer.domElement.addEventListener('mousemove', this.handleHover.bind(this));
+  }
+
+  /**
+   * 添加键盘事件监听器
+   */
+  private addKeyboardListeners() {
+    document.addEventListener('keydown', this.handleKeyDown.bind(this));
+  }
+
+  /**
+   * 处理键盘按下事件
+   */
+  private handleKeyDown(event: KeyboardEvent) {
+    const moveSpeed = 0.1;
+    switch (event.key.toLowerCase()) {
+      case 'w':
+        this.cameraPosition.z -= moveSpeed;
+        this.cameraTarget.z -= moveSpeed;
+        break;
+      case 's':
+        this.cameraPosition.z += moveSpeed;
+        this.cameraTarget.z += moveSpeed;
+        break;
+      case 'a':
+        this.cameraPosition.x -= moveSpeed;
+        this.cameraTarget.x -= moveSpeed;
+        break;
+      case 'd':
+        this.cameraPosition.x += moveSpeed;
+        this.cameraTarget.x += moveSpeed;
+        break;
+      case 'q':
+        this.cameraPosition.y -= moveSpeed;
+        this.cameraTarget.y -= moveSpeed;
+        break;
+      case 'e':
+        this.cameraPosition.y += moveSpeed;
+        this.cameraTarget.y += moveSpeed;
+        break;
+    }
+    this.updateCamera();
+  }
+
+  /**
+   * 更新相机位置
+   */
+  private updateCamera() {
+    this.camera.position.copy(this.cameraPosition);
+    this.camera.lookAt(this.cameraTarget);
+  }
+
+  /**
+   * 处理鼠标双击事件 - 打开源码
+   */
+  private handleDoubleClick(event: MouseEvent) {
+    event.preventDefault();
+
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+
+    const intersects = raycaster.intersectObjects(Array.from(this.nodes.values()));
+
+    if (intersects.length > 0) {
+      const mesh = intersects[0].object as THREE.Mesh;
+      const nodeId = Array.from(this.nodes.entries()).find(([_, value]) => value === mesh)?.[0];
+
+      if (nodeId) {
+        const node = this.data.nodes.find(n => n.id === nodeId);
+        if (node && node.path) {
+          // 在实际开发环境中，这里会打开文件
+          console.log(`Opening source file: ${node.path}`);
+          alert(`Would open source file: ${node.path}`);
+          // 这里可以添加实际打开文件的逻辑，取决于开发环境
+        }
+      }
+    }
+  }
+
+  /**
+   * 处理鼠标悬停事件 - 显示体积提示
+   */
+  private handleHover(event: MouseEvent) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, this.camera);
+
+    const intersects = raycaster.intersectObjects(Array.from(this.nodes.values()));
+
+    if (intersects.length > 0) {
+      const mesh = intersects[0].object as THREE.Mesh;
+      const nodeId = Array.from(this.nodes.entries()).find(([_, value]) => value === mesh)?.[0];
+
+      if (nodeId) {
+        const node = this.data.nodes.find(n => n.id === nodeId);
+        if (node) {
+          // 显示体积提示
+          this.volumeTooltip.textContent = `Size: ${this.formatBytes(node.size)}`;
+          this.volumeTooltip.style.left = `${event.clientX - rect.left + 10}px`;
+          this.volumeTooltip.style.top = `${event.clientY - rect.top + 10}px`;
+          this.volumeTooltip.style.display = 'block';
+
+          // 高亮节点
+          if (mesh.material instanceof THREE.MeshBasicMaterial) {
+            // 使用类型断言解决类型不匹配问题
+            (mesh.material as unknown as THREE.MeshLambertMaterial).emissive.set(0xffffff);
+            (mesh.material as unknown as THREE.MeshLambertMaterial).emissiveIntensity = 0.5; // 先转为unknown再转为MeshLambertMaterial
+          }
+        }
+      }
+    } else {
+      // 隐藏体积提示
+      this.volumeTooltip.style.display = 'none';
+
+      // 重置所有节点高亮
+      this.nodes.forEach(mesh => {
+        if (mesh.material instanceof THREE.MeshBasicMaterial) {
+          // 使用类型断言解决类型不匹配问题
+          (mesh.material as unknown as THREE.MeshLambertMaterial).emissive.set(0x000000);
+          (mesh.material as unknown as THREE.MeshLambertMaterial).emissiveIntensity = 0; // 先转为unknown再转为MeshLambertMaterial
+        }
+      });
+    }
+  }
+
+  /**
+   * 格式化字节数
+   */
+  private formatBytes(bytes: number, decimals: number = 2): string {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  }
+
+  /**
+   * 处理鼠标按下事件
+   */
+  private handleMouseDown(event: MouseEvent) {
+    event.preventDefault();
+    this.isDragging = true;
+    this.previousMousePosition = { x: event.clientX, y: event.clientY };
+    this.renderer.domElement.style.cursor = 'grabbing';
+  }
+
+  /**
+   * 处理鼠标移动事件
+   */
+  private handleMouseMove(event: MouseEvent) {
+    if (!this.isDragging) return;
+
+    const deltaX = event.clientX - this.previousMousePosition.x;
+    const deltaY = event.clientY - this.previousMousePosition.y;
+
+    // 使用球面坐标进行旋转
+    const spherical = new THREE.Spherical();
+    spherical.setFromVector3(this.camera.position.clone().sub(this.cameraTarget));
+
+    spherical.theta += deltaX * 0.01 * this.sensitivity;
+    spherical.phi += deltaY * 0.01 * this.sensitivity;
+    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+
+    this.camera.position.setFromSpherical(spherical).add(this.cameraTarget);
+    this.camera.lookAt(this.cameraTarget);
+
+    this.previousMousePosition = { x: event.clientX, y: event.clientY };
+  }
+
+  /**
+   * 处理鼠标释放事件
+   */
+  private handleMouseUp() {
+    this.isDragging = false;
+    this.renderer.domElement.style.cursor = 'grab';
+  }
+
+  /**
+   * 处理鼠标滚轮事件
+   */
+  private handleWheel(event: WheelEvent) {
+    event.preventDefault();
+
+    const delta = event.deltaY > 0 ? -0.5 : 0.5;
+    const spherical = new THREE.Spherical();
+    spherical.setFromVector3(this.camera.position.clone().sub(this.cameraTarget));
+
+    spherical.radius = Math.max(2, Math.min(20, spherical.radius + delta));
+
+    this.camera.position.setFromSpherical(spherical).add(this.cameraTarget);
   }
 }
 

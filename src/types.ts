@@ -17,6 +17,7 @@ export interface DependencyNode {
   lastUpdated: number;
   dependencies: string[];
   type: 'util' | 'ui' | 'lib' | 'other';
+  path?: string; // 文件路径，可选
 }
 
 /**
