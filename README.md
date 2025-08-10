@@ -1,81 +1,132 @@
-# vite-plugin-galaxy
+# vite-plugin-galaxy  
+> **把 Vite 项目的依赖图变成可交互的 3D 星系，支持微前端、版本冲突、性能诊断、一键分享。**
 
-产品定位  
-vite-plugin-galaxy 是一款“零配置”的 Vite 插件，把项目依赖关系实时渲染成可交互 3D 星系。开发者通过浏览器即可一眼发现体积黑洞、循环依赖与幽灵包，为大型项目提供直观、沉浸式的依赖治理体验。
+---
 
-## 安装
+## 🌌 功能全景图
+
+| 类别 | 功能亮点 | 状态 |
+|---|---|---|
+| **依赖分析** | • ESM / CJS / TypeScript / Vue SFC / JSX / MDX<br>• 支持 alias、tsconfig-paths、动态 import()<br>• 识别循环依赖、重复安装、幽灵依赖 | ✅ |
+| **3D 星系渲染** | • 力导向 3D 星系（节点=星球、边=引力线）<br>• 节点大小=体积，颜色=类型（入口、第三方、懒加载）<br>• 星云背景、星轨动画、昼夜光照 | ✅ |
+| **交互探索** | • 拖拽、缩放、聚焦、搜索、路径追踪<br>• 双击星球 → 打开对应源码文件（VSCode 协议）<br>• 悬停卡片：模块大小、版本、最近修改人（git-blame） | ✅ |
+| **热更新** | • 文件保存 → 局部增量重算 → 实时推送<br>• 变更高亮 2 s 闪烁动画 | ✅ |
+| **静态导出** | • `vite build` 自动生成 `galaxy-report.html`<br>• 支持部署到 GitHub Pages / Netlify / 内网 Nginx | ✅ |
+| **微前端 & Monorepo** | • 多 package 合并星系<br>• 颜色区分不同 workspace<br>• 支持 pnpm / yarn / npm workspace | ✅ |
+| **版本冲突雷达** | • 同一依赖多版本展示为“红色脉冲”<br>• 提供一键升级建议 | ✅ |
+| **性能诊断** | • 生成 bundle-phobia 式体积瀑布图<br>• 标记 > 100 KB 模块为“黑洞” | ✅ |
+| **一键分享** | • 生成唯一 URL（含 gzip 图数据）<br>• 支持导出 PNG / WebM 动画 | 🚧 |
+| **插件市场** | • VSCode 侧边栏<br>• Chrome DevTools Panel | 🚧 |
+
+---
+
+## ⚡ 30 秒上手
 
 ```bash
-# 使用 npm
-npm install vite-plugin-galaxy --save-dev
+# 安装
+pnpm add -D vite-plugin-galaxy
 
-# 使用 yarn
-yarn add vite-plugin-galaxy --dev
+# 配置
+// vite.config.ts
+import galaxy from 'vite-plugin-galaxy'
+export default {
+  plugins: [
+    galaxy({
+      enabled: true,
+      port: 3001,
+      mode: 'galaxy',      // 'galaxy' | 'solar-system' | 'flat'
+      static: true,        // build 时生成报告
+      gitBlame: true,      // 显示最近修改人
+      performance: 'auto'  // 'low' | 'mid' | 'high' | 'auto'
+    })
+  ]
+}
 
-# 使用 pnpm
-pnpm add vite-plugin-galaxy --dev
+# 运行
+pnpm dev
+# 打开 http://localhost:3001/__galaxy
 ```
 
-## 快速开始
+---
 
-1. 在 `vite.config.ts` 中添加插件：
+## 🔧 完整配置 API
 
 ```ts
-import { defineConfig } from 'vite';
-import galaxy from 'vite-plugin-galaxy';
-
-export default defineConfig({
-  plugins: [
-    galaxy() // 零配置使用
-  ]
-});
+interface GalaxyOptions {
+  /** 是否启用（CI 中可关闭） */
+  enabled?: boolean
+  /** 端口，冲突自动 +1 */
+  port?: number
+  /** 渲染模式 */
+  mode?: 'galaxy' | 'solar-system' | 'flat'
+  /** 静态报告 */
+  static?: boolean
+  /** 性能预设 */
+  performance?: 'low' | 'mid' | 'high' | 'auto'
+  /** 排除/包含文件 */
+  include?: string[]
+  exclude?: string[]
+  /** 路径脱敏 */
+  pathTransformer?: (id: string) => string
+  /** Git 信息 */
+  gitBlame?: boolean
+  /** 远程分享 */
+  share?: boolean
+}
 ```
 
-2. 启动开发服务器：
+---
 
-```bash
-npm run dev
+## 🏗️ 架构概览
+
+```mermaid
+graph TD
+    subgraph "Browser"
+        VR[Three.js Renderer] --> |渲染| G[3D Galaxy]
+        VU[Vue UI Components] --> |控制| VR
+        VU --> |查询| WS
+    end
+
+    subgraph "Node (Vite Plugin)"
+        VP[Vite Plugin Entry] --> CC[Core Controller]
+        CC --> VS[Visualization Server]
+        CC --> DM[Data Manager]
+        CC --> AM[Analyzer Module]
+        
+        AM --> AP[AST Parser]
+        AM --> DT[Dependency Tracker]
+        AM --> PA[Package Analyzer]
+        AM --> GI[Git Integration]
+        
+        DM --> GC[Graph Cache]
+        VS --> WSS[WebSocket Server]
+        
+        PA --> |检测| VC[Version Conflicts]
+        PA --> |分析| PP[Performance Profiler]
+    end
+
+    WSS -.-> |实时更新| VR
+    WSS -.-> |数据推送| VU
+    GI --> |git-blame| DM
+    AP --> |解析| DT
+    DT --> |构建| DM
+    PP --> |黑洞检测| DM
+    VC --> |冲突标记| DM
 ```
 
-3. 访问 `http://localhost:5173/__deps3d` 查看 3D 星系图。
+---
 
-## 功能清单
+## 📦 安装体积
 
-| 模块 | 子功能 | 触发时机 | 描述 | 可配置项 |
-|---|---|---|---|---|
-| **依赖采集** | 深度解析 | buildStart / 首次 dev | 读取 Vite moduleGraph + esbuild metafile，生成含体积、深度、更新时间的 GraphJSON | 排除正则 / 别名映射 |
-|  | 幽灵包检测 | 同上 | 找出未声明在 package.json 却被引用的依赖 | 可输出警告日志 |
-| **开发视图** | 3D 星系渲染 | configureServer | 启动本地路由 `/__deps3d`，Three.js WebGL 渲染 | 背景、节点纹理、轨道颜色 |
-|  | 实时 HMR | handleHotUpdate | 仅增量同步新增/删除/改动的节点与边 | 开关 |
-|  | 节点交互 | 浏览器端 | 单击 → 抽屉详情；双击 → VS Code 打开源码；Hover → 体积提示 | 快捷键可改 |
-|  | 视角控制 | 浏览器端 | 鼠标拖拽/滚轮缩放；支持十字键 WASD 飞行模式 | 灵敏度调节 |
-|  | VR 模式 | 浏览器端 | WebXR API，陀螺仪 + Oculus 浏览器沉浸式浏览 | 可关闭 |
-| **生产报告** | 4K 海报 | writeBundle | 渲染 3840×2160 PNG 星系图，附带图例 | 分辨率、格式 |
-|  | JSON 数据 | 同上 | 生成 deps.json，供后续 BI 或自定义图表使用 | 路径 |
-| **嵌入能力** | Web Component | 独立构建 | `<deps-galaxy src="./deps.json"></deps-galaxy>` 可嵌入 Storybook、文档站 | 主题色 |
-| **性能优化** | 节点裁剪 | 浏览器端 | 视锥剔除 + LOD，>2k 节点仍 60 FPS | LOD 阈值可调 |
-|  | 内存释放 | 热更新 | 旧场景对象自动 dispose，防止泄漏 | — |
-| **扩展钩子** | 自定义着色 | 插件选项 | 通过 colorMapper 函数按更新时间/团队归属着色 | 函数 |
-|  | 自定义形状 | 插件选项 | 根据包类型（util、ui、lib）使用不同几何体 | 映射对象 |
+| 场景 | 体积 | 说明 |
+|---|---|---|
+| 插件本体 | 110 KB | 仅含 Node 代码 |
+| 可视化页面 | 1.2 MB gzip | 含 Three.js、Vue、drei |
+| 依赖分析缓存 | < 1 MB | `.vite/galaxy.cache.json` |
 
-```
-vite-plugin-galaxy/
-├─ src/
-│  ├─ index.ts                 # 插件入口
-│  ├─ core/
-│  │  ├─ collect.ts            # 依赖采集（moduleGraph + esbuild metafile）
-│  │  ├─ ghost.ts              # 幽灵包检测
-│  │  └─ graph.ts              # 生成 GraphJSON
-│  ├─ server/
-│  │  └─ index.ts              # configureServer & handleHotUpdate
-│  ├─ client/                  # 浏览器端代码（Three.js、WebXR）
-│  │  ├─ main.ts               # 挂在 /__deps3d 的入口
-│  │  ├─ renderer.ts           # 3D 渲染逻辑
-│  │  └─ types.ts
-│  ├─ ci/                      # GitHub Action 模板
-│  └─ webcomponent/            # <deps-galaxy> 独立构建
-├─ examples/                 # 用于本地调试的 Vite 项目
-├─ tsup.config.ts
-├─ package.json
-└─ README.md
-```
+---
+
+## 🤝 贡献 & 许可证
+
+MIT © Galaxy Team  
+欢迎 PR & Star！
