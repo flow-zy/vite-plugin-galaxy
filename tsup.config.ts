@@ -1,23 +1,21 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: ['src/index.ts'],
-  format: ['cjs', 'esm'],
+  entry: {
+    index: 'src/index.ts',
+    'client/main': 'src/client/main.ts',
+    'client/renderer': 'src/client/renderer.ts',
+    'core/collect': 'src/core/collect.ts',
+    'core/graph': 'src/core/graph.ts',
+    'core/ghost': 'src/core/ghost.ts',
+    'server/index': 'src/server/index.ts',
+    'prod-report': 'src/prod-report.ts'
+  },
+  format: ['esm', 'cjs'],
   dts: true,
-  clean: true,
+  splitting: true,
   sourcemap: true,
-  external: ['vite', 'rollup'],
-  target: 'es2020',
-  platform: 'node',
-  outExtension({ format }) {
-    return {
-      js: `${format === 'esm' ? '.mjs' : '.cjs'}`,
-    };
-  },
-  esbuildOptions(options) {
-    // 添加 banner 信息
-    options.banner = {
-      js: `/*! My Vite Plugin v0.0.0 | MIT License */`,
-    };
-  },
-});
+  clean: true,
+  minify: process.env.CI === 'true',
+  external: ['vite', 'three', 'canvas'] // 让宿主项目复用
+})

@@ -1,10 +1,21 @@
 {
   "name": "vite-plugin-galaxy",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "零配置的 Vite 插件，将项目依赖关系实时渲染成可交互 3D 星系",
   "main": "dist/index.cjs",
-  "module": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./browser": {
+      "import": "./dist/browser.mjs",
+      "types": "./dist/browser.d.ts"
+    }
+  },
   "files": [
     "dist"
   ],
@@ -15,7 +26,8 @@
     "format": "prettier --write .",
     "preview": "vite preview",
     "test": "mocha --require ts-node/register 'test/**/*.test.ts'",
-    "test:watch": "mocha --require ts-node/register --watch 'test/**/*.test.ts'"
+    "test:watch": "mocha --require ts-node/register --watch 'test/**/*.test.ts'",
+    "play": "pnpm --filter examples dev"
   },
   "keywords": [
     "vite",
@@ -58,6 +70,7 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
+    "canvas": "^2.11.2",
     "three": "^0.160.0"
   },
   "packageManager": "pnpm@8.10.5"

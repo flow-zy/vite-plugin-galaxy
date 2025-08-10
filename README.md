@@ -52,152 +52,30 @@ npm run dev
 |  | VR 模式 | 浏览器端 | WebXR API，陀螺仪 + Oculus 浏览器沉浸式浏览 | 可关闭 |
 | **生产报告** | 4K 海报 | writeBundle | 渲染 3840×2160 PNG 星系图，附带图例 | 分辨率、格式 |
 |  | JSON 数据 | 同上 | 生成 deps.json，供后续 BI 或自定义图表使用 | 路径 |
-| **CI 集成** | GitHub Action | 用户 CI | 官方模板 action，一键生成 PR 评论 + 对比图 | Token 配置 |
 | **嵌入能力** | Web Component | 独立构建 | `<deps-galaxy src="./deps.json"></deps-galaxy>` 可嵌入 Storybook、文档站 | 主题色 |
 | **性能优化** | 节点裁剪 | 浏览器端 | 视锥剔除 + LOD，>2k 节点仍 60 FPS | LOD 阈值可调 |
 |  | 内存释放 | 热更新 | 旧场景对象自动 dispose，防止泄漏 | — |
 | **扩展钩子** | 自定义着色 | 插件选项 | 通过 colorMapper 函数按更新时间/团队归属着色 | 函数 |
 |  | 自定义形状 | 插件选项 | 根据包类型（util、ui、lib）使用不同几何体 | 映射对象 |
 
-## 配置选项
-
-```ts
-interface GalaxyOptions {
-  // 排除某些依赖（正则表达式数组）
-  exclude?: RegExp[];
-  
-  // 别名映射
-  alias?: Record<string, string>;
-  
-  // 输出配置
-  output?: {
-    json?: string;         // JSON 数据输出路径
-    image?: string;        // 图片输出路径
-    resolution?: {         // 图片分辨率
-      width: number;
-      height: number;
-    };
-  };
-  
-  // 可视化配置
-  visual?: {
-    backgroundColor?: string;  // 背景颜色
-    nodeColors?: {
-      default?: string;        // 默认节点颜色
-      ghost?: string;          // 幽灵依赖颜色
-      large?: string;          // 大型依赖颜色
-    };
-    sensitivity?: number;      // 视角灵敏度
-    enableVR?: boolean;        // 是否启用 VR 模式
-  };
-  
-  // 性能优化配置
-  performance?: {
-    enableFrustumCulling?: boolean;  // 是否启用视锥剔除
-    enableLOD?: boolean;             // 是否启用 LOD
-    lodLevels?: [number, number, number];  // LOD 距离阈值
-    cleanupInterval?: number;        // 内存清理间隔（毫秒）
-    detailLevels?: {
-      high?: number;                 // 高细节级别
-      medium?: number;               // 中细节级别
-      low?: number;                  // 低细节级别
-    };
-  };
-  
-  // 自定义着色函数
-  colorMapper?: (node: DependencyNode) => string;
-  
-  // 自定义形状映射
-  shapeMapper?: (node: DependencyNode) => 'sphere' | 'cube' | 'torus' | 'custom';
-}
 ```
-
-## 高级示例
-
-```ts
-import { defineConfig } from 'vite';
-import galaxy from 'vite-plugin-galaxy';
-
-export default defineConfig({
-  plugins: [
-    galaxy({
-      // 排除某些依赖
-      exclude: [/node_modules\/react/],
-      
-      // 别名映射
-      alias: {
-        '@': '/src',
-      },
-      
-      // 输出配置
-      output: {
-        json: 'deps.json',
-        image: 'deps-galaxy.png',
-        resolution: { width: 3840, height: 2160 },
-      },
-      
-      // 可视化配置
-      visual: {
-        backgroundColor: '#0a0a1a',
-        nodeColors: {
-          default: '#8884d8',
-          ghost: '#ff4d4f',
-          large: '#ff7a45',
-        },
-        sensitivity: 1.0,
-        enableVR: true,
-      },
-
-      // 性能优化配置
-      performance: {
-        enableFrustumCulling: true,
-        enableLOD: true,
-        lodLevels: [15, 30, 60], // 自定义 LOD 距离阈值
-        cleanupInterval: 3000,    // 延长清理间隔至 3 秒
-        detailLevels: {
-          high: 1.0,
-          medium: 0.6,
-          low: 0.3,
-        },
-      },
-
-      // 自定义着色函数
-      colorMapper: (node) => {
-        // 根据最后更新时间着色
-        const now = Date.now();
-        const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-        const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
-        
-        if (node.lastUpdated > weekAgo) return '#52c41a'; // 最近一周更新的依赖 - 绿色
-        if (node.lastUpdated > monthAgo) return '#faad14'; // 最近一个月更新的依赖 - 黄色
-        return '#ff4d4f'; // 超过一个月未更新的依赖 - 红色
-      },
-      
-      // 自定义形状映射
-      shapeMapper: (node) => {
-        switch (node.type) {
-          case 'ui': return 'cube';
-          case 'util': return 'sphere';
-          case 'lib': return 'torus';
-          default: return 'sphere';
-        }
-      },
-    }),
-  ],
-});
+vite-plugin-galaxy/
+├─ src/
+│  ├─ index.ts                 # 插件入口
+│  ├─ core/
+│  │  ├─ collect.ts            # 依赖采集（moduleGraph + esbuild metafile）
+│  │  ├─ ghost.ts              # 幽灵包检测
+│  │  └─ graph.ts              # 生成 GraphJSON
+│  ├─ server/
+│  │  └─ index.ts              # configureServer & handleHotUpdate
+│  ├─ client/                  # 浏览器端代码（Three.js、WebXR）
+│  │  ├─ main.ts               # 挂在 /__deps3d 的入口
+│  │  ├─ renderer.ts           # 3D 渲染逻辑
+│  │  └─ types.ts
+│  ├─ ci/                      # GitHub Action 模板
+│  └─ webcomponent/            # <deps-galaxy> 独立构建
+├─ examples/                 # 用于本地调试的 Vite 项目
+├─ tsup.config.ts
+├─ package.json
+└─ README.md
 ```
-
-## 注意事项
-
-1. 插件需要 Vite 5.0.0 或更高版本。
-2. VR 模式需要浏览器支持 WebXR API。
-3. 对于非常大的项目（依赖超过 2000 个），首次加载可能会有些延迟。
-4. 生产报告生成可能需要额外的依赖，如 `canvas` 或 `sharp`。
-
-## 贡献
-
-欢迎贡献代码、提交问题或提出建议！
-
-## 许可证
-
-MIT 许可证
